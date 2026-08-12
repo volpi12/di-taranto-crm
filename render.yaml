@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ditaranto-crm
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/ping
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CRM_DATA_DIR
+        value: /var/data
+      - key: CRM_ADMIN_USER
+        sync: false
+      - key: CRM_ADMIN_PASSWORD
+        sync: false
+      - key: CRM_PUBLIC_URL
+        sync: false
+      - key: ALLOW_RECOVERY_LOGIN
+        value: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_GRAPH_VERSION
+        value: v20.0
+    disk:
+      name: ditaranto-crm-data
+      mountPath: /var/data
+      sizeGB: 1

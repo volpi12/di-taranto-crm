@@ -1,0 +1,286 @@
+:root {
+  --green: #46e323;
+  --green-soft: #caffbf;
+  --ink: #111611;
+  --muted: #727970;
+  --line: #d9dfd6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f3f5f2;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.page {
+  width: min(1240px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0;
+}
+
+.hero {
+  min-height: 220px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(70, 227, 35, 0.24), transparent 30%),
+    #050705;
+  color: white;
+}
+
+.hero img {
+  width: min(420px, 48%);
+  max-height: 150px;
+  object-fit: contain;
+}
+
+.hero p {
+  margin: 0 0 8px;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 58px);
+}
+
+.concepts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.concept {
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 18px 45px rgba(15, 20, 15, 0.1);
+}
+
+.concept-head {
+  display: flex;
+  gap: 12px;
+}
+
+.concept-head span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--green);
+  color: #061006;
+  font-weight: 1000;
+}
+
+.concept h2 {
+  margin: 0 0 4px;
+}
+
+.concept p,
+.concept li {
+  color: var(--muted);
+}
+
+.concept ul {
+  margin: auto 0 0;
+  padding-left: 18px;
+}
+
+.concept li {
+  margin: 9px 0;
+}
+
+.mockup {
+  height: 320px;
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.mockup aside {
+  padding: 14px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.mockup aside span,
+.logo-line,
+.topbar,
+.stats b,
+.rows i {
+  display: block;
+  border-radius: 6px;
+}
+
+.logo-line {
+  height: 42px;
+}
+
+.mockup aside span {
+  height: 28px;
+}
+
+.mockup section {
+  padding: 18px;
+}
+
+.topbar {
+  height: 54px;
+  margin-bottom: 16px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stats b {
+  height: 68px;
+}
+
+.rows {
+  display: grid;
+  gap: 10px;
+}
+
+.rows i {
+  height: 44px;
+}
+
+.dark .mockup {
+  background: #101510;
+}
+
+.dark .mockup aside {
+  background: #050705;
+}
+
+.dark .logo-line {
+  background: linear-gradient(90deg, #ffffff, var(--green));
+  box-shadow: 0 0 18px rgba(70, 227, 35, 0.5);
+}
+
+.dark .mockup aside span,
+.dark .topbar,
+.dark .stats b,
+.dark .rows i {
+  background: #1c241c;
+}
+
+.dark .stats b:first-child,
+.dark .rows i:first-child {
+  border-top: 3px solid var(--green);
+}
+
+.sport .mockup {
+  background: linear-gradient(135deg, #090b09 0%, #090b09 55%, #142414 55%);
+}
+
+.sport .mockup aside {
+  background: #000;
+}
+
+.sport .logo-line {
+  background: repeating-linear-gradient(135deg, #f7f7f7 0 12px, var(--green) 12px 24px);
+}
+
+.sport .mockup aside span,
+.sport .topbar,
+.sport .stats b,
+.sport .rows i {
+  background: rgba(70, 227, 35, 0.16);
+  border-left: 3px solid var(--green);
+  transform: skewX(-8deg);
+}
+
+.clean .mockup {
+  background: #f7f8f5;
+  border-color: var(--line);
+}
+
+.clean .mockup aside {
+  background: #121712;
+}
+
+.clean .logo-line {
+  background: #050705;
+  border: 2px solid var(--green);
+}
+
+.clean .mockup aside span {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.clean .topbar,
+.clean .stats b,
+.clean .rows i {
+  background: white;
+  border: 1px solid var(--line);
+}
+
+.clean .stats b:first-child {
+  border-top: 3px solid var(--green);
+}
+
+.recommendation {
+  margin-top: 22px;
+  padding: 24px;
+  border-radius: 10px;
+  background: #071007;
+  color: white;
+}
+
+.recommendation h2 {
+  margin: 0 0 8px;
+}
+
+.recommendation p {
+  margin: 0;
+  color: #dbe8d8;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.recommendation strong {
+  color: var(--green);
+}
+
+@media (max-width: 980px) {
+  .concepts {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .hero img {
+    width: 100%;
+  }
+}

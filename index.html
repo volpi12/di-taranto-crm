@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#050806" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>CRM Detailing</title>
+    <link rel="apple-touch-icon" href="assets/ditaranto-logo-transparent.png" />
+    <link rel="stylesheet" href="styles.css?v=20260803-clientes-excel-whatsapp1" />
+  </head>
+  <body class="locked tidy-ui">
+    <section class="login-screen" id="loginScreen">
+      <form class="login-card" id="loginForm">
+        <img src="assets/ditaranto-logo-wordmark-boost.png" alt="Ditaranto Car Detailing" />
+        <p class="eyebrow">Acceso privado</p>
+        <h1>Ingresar al CRM</h1>
+        <label>
+          Usuario
+          <input id="loginUser" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+        </label>
+        <label>
+          Contraseña
+          <input id="loginPassword" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+        </label>
+        <button class="primary" type="submit">Entrar</button>
+        <button class="secondary" type="button" id="recoverLogin">Entrar con recuperación</button>
+        <p class="helper-text">Usá tu usuario privado. El mismo acceso sirve en Mac, celular y cualquier navegador.</p>
+        <p class="helper-text" id="loginNetworkInfo">Verificando conexión con el servidor...</p>
+        <p class="helper-text" id="loginError"></p>
+      </form>
+    </section>
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/ditaranto-logo-wordmark-boost.png" alt="Ditaranto Car Detailing" />
+        <p class="eyebrow">Car detailing CRM</p>
+      </div>
+      <nav class="tabs" aria-label="Secciones">
+        <button class="tab" data-tab="reception">Recepción</button>
+        <button class="tab active" data-tab="dashboard">Panel</button>
+        <button class="tab" data-tab="clients">Clientes</button>
+        <button class="tab" data-tab="services">Servicios</button>
+        <button class="tab" data-tab="products">Productos</button>
+        <button class="tab" data-tab="appointments">Turnos</button>
+        <button class="tab" data-tab="payments">Caja</button>
+        <button class="tab" data-tab="quotes">Cotizaciones</button>
+        <button class="tab" data-tab="invoices">Facturas</button>
+        <button class="tab" data-tab="reports">Reportes</button>
+        <button class="tab" data-tab="whatsappTemplates">WhatsApp</button>
+        <button class="tab" data-tab="settings">Taller</button>
+      </nav>
+      <button class="theme-toggle" type="button" id="themeToggle" aria-pressed="false">Modo claro</button>
+    </aside>
+
+    <main class="app">
+      <section class="mobile-app-shell" aria-label="Inicio móvil">
+        <div class="mobile-app-topbar">
+          <img src="assets/ditaranto-logo-wordmark-boost.png" alt="Ditaranto Car Detailing" />
+          <div>
+            <strong>CRM Detailing</strong>
+            <span id="mobileTodayLabel">Hoy</span>
+          </div>
+          <div class="mobile-top-actions">
+            <button class="secondary mobile-icon-action" type="button" id="mobileAlertsShortcut">Alertas</button>
+          </div>
+        </div>
+        <div class="mobile-home-actions">
+          <button class="primary" type="button" data-open-tab="reception">Ingresar auto</button>
+          <button class="whatsapp" type="button" data-open-tab="payments">Cobrar</button>
+          <button class="secondary" type="button" data-open-tab="appointments">Turno</button>
+        </div>
+      </section>
+      <section class="global-search">
+        <div>
+          <p class="eyebrow">Buscador global</p>
+          <input id="globalSearch" placeholder="Buscar cliente, patente, WhatsApp, recibo, cotización, turno, servicio o producto" />
+        </div>
+        <div class="notification-center">
+          <button class="secondary notification-button" type="button" id="notificationToggle" aria-expanded="false">
+            Alertas <span id="notificationCount">0</span>
+          </button>
+          <div class="notification-panel" id="notificationPanel" hidden></div>
+        </div>
+        <button class="secondary" type="button" id="logoutButton">Salir</button>
+        <div class="global-results" id="globalResults"></div>
+      </section>
+      <section class="quick-profile" id="quickProfile" hidden aria-live="polite"></section>
+      <section class="view" id="reception">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Ingreso rápido</p>
+            <h2>Modo recepción</h2>
+          </div>
+        </div>
+        <section class="reception-kiosk panel">
+          <div class="reception-kiosk-head">
+            <div>
+              <p class="eyebrow">Kiosco recepción</p>
+              <h3>Buscar patente o cliente</h3>
+            </div>
+            <button class="secondary" type="button" id="clearReception">Nuevo ingreso</button>
+          </div>
+          <label class="reception-search-box">
+            <span>Patente, nombre, WhatsApp, marca o modelo</span>
+            <input id="receptionSearch" placeholder="Ej: AE178RL, Alejo, Amarok, 549..." autocomplete="off" />
+          </label>
+          <div class="reception-matches" id="receptionMatches"></div>
+        </section>
+        <form class="reception-workspace reception-kiosk-workspace" id="receptionForm">
+          <aside class="panel reception-summary-card reception-kiosk-summary">
+            <p class="eyebrow">Ficha de ingreso</p>
+            <div class="reception-summary" id="receptionSummary"></div>
+          </aside>
+
+          <section class="panel reception-kiosk-actions">
+            <p class="eyebrow">Acciones rápidas</p>
+            <div class="reception-charge-box">
+              <label>
+                Cobrar
+                <select id="receptionItemType">
+                  <option value="service">Servicio</option>
+                  <option value="product">Producto</option>
+                </select>
+              </label>
+              <label class="reception-service-picker">
+                Servicio
+                <select id="receptionService"></select>
+              </label>
+              <label class="reception-product-picker" hidden>
+                Producto
+                <select id="receptionProduct"></select>
+              </label>
+              <label>
+                Día
+                <input id="receptionDate" type="date" />
+              </label>
+              <label>
+                Horario
+                <select id="receptionTime"></select>
+              </label>
+            </div>
+            <div class="reception-actions">
+              <button class="primary" type="button" id="receptionCreateAppointment">Agendar turno</button>
+              <button class="secondary" type="button" id="receptionCreateQuote">Cotizar</button>
+              <button class="whatsapp" type="button" id="receptionCreatePayment">Cobrar</button>
+              <button class="secondary" type="button" id="clearReceptionSelection">Limpiar selección</button>
+            </div>
+            <details class="advanced-box reception-adjust-box">
+              <summary>Ajustar datos del ingreso</summary>
+              <div class="form-grid reception-client-fields">
+                <label>
+                  Cliente guardado
+                  <select id="receptionClient"></select>
+                </label>
+                <label>
+                  Vehículo guardado
+                  <select id="receptionVehicle"></select>
+                </label>
+                <label>
+                  Nombre
+                  <input id="receptionName" placeholder="Cliente nuevo o existente" />
+                </label>
+                <label>
+                  WhatsApp
+                  <input id="receptionWhatsapp" placeholder="549..." />
+                </label>
+                <label>
+                  Patente
+                  <input id="receptionPlate" placeholder="AB123CD" />
+                </label>
+                <label>
+                  Marca
+                  <select id="receptionBrand"></select>
+                </label>
+                <label>
+                  Modelo / vehículo
+                  <input id="receptionModel" placeholder="Ej: Amarok gris" />
+                </label>
+                <label>
+                  Importe cobro
+                  <input id="receptionAmount" type="number" min="0" step="0.01" placeholder="Se completa con el servicio" />
+                </label>
+                <label>
+                  Moneda
+                  <select id="receptionCurrency">
+                    <option value="ARS">ARS</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </label>
+                <label class="full">
+                  Nota rápida
+                  <textarea id="receptionNotes" rows="2" placeholder="Ej: cliente espera, revisar tapizado, seña, etc."></textarea>
+                </label>
+              </div>
+            </details>
+          </section>
+        </form>
+      </section>
+      <section class="view active" id="dashboard">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Resumen</p>
+            <h2>Trabajo del día</h2>
+          </div>
+          <div class="quick-actions">
+            <button class="secondary" data-open-tab="appointments">Nuevo turno</button>
+            <button class="secondary" data-open-tab="payments">Registrar cobro</button>
+            <button class="primary" data-open-tab="quotes">Nueva cotización</button>
+          </div>
+        </div>
+        <section class="dashboard-hero">
+          <div>
+            <p class="eyebrow">Hoy</p>
+            <h1 id="dashboardTodayTitle">0 turnos programados</h1>
+            <p id="dashboardTodayText">La actividad del día va a aparecer acá.</p>
+          </div>
+          <div class="dashboard-hero-side">
+            <span>Caja hoy</span>
+            <strong id="dashboardHeroIncome">$0</strong>
+            <small id="dashboardHeroPending">Sin saldos pendientes</small>
+          </div>
+        </section>
+        <section class="home-command-center">
+          <button class="home-command primary" type="button" data-open-tab="reception">
+            <strong>Recepción rápida</strong>
+            <span>Buscar, agendar, cotizar o cobrar desde una sola pantalla</span>
+          </button>
+          <button class="home-command secondary" type="button" data-open-tab="clients">
+            <strong>Ficha de cliente</strong>
+            <span>Patentes, vehículos, historial y WhatsApp</span>
+          </button>
+          <button class="home-command secondary" type="button" data-open-tab="appointments">
+            <strong>Agenda</strong>
+            <span>Ver turnos, cobrar saldos y ordenar el día</span>
+          </button>
+          <button class="home-command whatsapp" type="button" data-open-tab="payments">
+            <strong>Caja</strong>
+            <span>Cobrar servicios/productos y emitir recibos</span>
+          </button>
+        </section>
+        <div class="metrics dashboard-metrics">
+          <div class="metric metric-clients">
+            <span id="metricClients">0</span>
+            <p>Clientes cargados</p>
+          </div>
+          <div class="metric metric-quotes">
+            <span id="metricQuotes">0</span>
+            <p>Cotizaciones abiertas</p>
+          </div>
+          <div class="metric metric-invoices">
+            <span id="metricInvoices">0</span>
+            <p>Facturas pendientes</p>
+          </div>
+          <div class="metric metric-revenue">
+            <span id="metricRevenue">$0</span>
+            <p>Facturado total</p>
+          </div>
+          <div class="metric metric-products">
+            <span id="metricProducts">0</span>
+            <p>Productos cargados</p>
+          </div>
+          <div class="metric metric-stock">
+            <span id="metricLowStock">0</span>
+            <p>Stock bajo</p>
+          </div>
+          <div class="metric metric-appointments">
+            <span id="metricAppointments">0</span>
+            <p>Turnos pendientes</p>
+          </div>
+          <div class="metric metric-income">
+            <span id="metricIncome">$0</span>
+            <p>Ingresos de hoy</p>
+          </div>
+        </div>
+        <div class="split">
+          <section class="panel dashboard-panel dashboard-panel-agenda">
+            <div class="section-heading">
+              <h3>Turnos de hoy pendientes</h3>
+            </div>
+            <div class="list compact-list" id="todayAppointments"></div>
+          </section>
+          <section class="panel dashboard-panel dashboard-panel-cash">
+            <div class="section-heading">
+              <h3>Saldos pendientes</h3>
+            </div>
+            <div class="list compact-list" id="dashboardPendingBalances"></div>
+          </section>
+        </div>
+        <div class="split">
+          <section class="panel dashboard-panel dashboard-panel-sales">
+            <div class="section-heading">
+              <h3>Últimas cotizaciones</h3>
+            </div>
+            <div class="list compact-list" id="recentQuotes"></div>
+          </section>
+          <section class="panel dashboard-panel dashboard-panel-stock">
+            <div class="section-heading">
+              <h3>Stock bajo</h3>
+            </div>
+            <div class="list compact-list" id="lowStockList"></div>
+          </section>
+        </div>
+        <div class="split home-focus-grid">
+          <section class="panel home-focus-card dashboard-panel dashboard-panel-priority">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Prioridad</p>
+                <h3>Atención recomendada</h3>
+              </div>
+            </div>
+            <div class="home-priority-list" id="dashboardPriority"></div>
+          </section>
+          <section class="panel home-focus-card dashboard-panel dashboard-panel-activity">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Actividad</p>
+                <h3>Últimos movimientos</h3>
+              </div>
+            </div>
+            <div class="home-activity-list" id="dashboardActivity"></div>
+          </section>
+        </div>
+        <section class="panel dashboard-panel dashboard-panel-upcoming">
+          <div class="section-heading">
+            <h3>Próximos turnos</h3>
+          </div>
+          <div class="list compact-list" id="upcomingAppointments"></div>
+        </section>
+      </section>
+
+      <section class="view" id="clients">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Agenda</p>
+            <h2>Clientes y vehículos</h2>
+          </div>
+        </div>
+        <div class="client-summary" id="clientSummary"></div>
+        <section class="panel history-panel" id="clientHistoryPanel">
+          <div class="section-heading history-heading">
+            <div>
+              <p class="eyebrow">Ficha del cliente</p>
+              <h3 id="clientHistoryTitle">Seleccioná un cliente</h3>
+            </div>
+            <div class="history-actions">
+              <select id="clientHistoryClientFilter" aria-label="Cliente del historial"></select>
+              <select id="clientHistoryVehicleFilter" aria-label="Vehículo del historial"></select>
+            </div>
+          </div>
+          <div class="vehicle-history-summary" id="vehicleHistorySummary"></div>
+          <div class="history-grid" id="clientHistory"></div>
+        </section>
+        <form class="panel client-form-modern" id="clientForm">
+          <input type="hidden" id="clientId" />
+          <section class="client-form-block">
+            <div class="client-form-step">1</div>
+            <div class="client-form-fields">
+              <div class="client-block-title">
+                <strong>Datos del cliente</strong>
+                <span>Nombre y WhatsApp para agenda, recibos y mensajes.</span>
+              </div>
+              <div class="form-grid client-info-grid">
+                <label>
+                  Nombre
+                  <input id="clientName" required placeholder="Ej: Juan Pérez" />
+                </label>
+                <label>
+                  WhatsApp
+                  <input id="clientWhatsapp" required placeholder="Ej: 5491123456789" />
+                </label>
+              </div>
+            </div>
+          </section>
+          <section class="client-form-block">
+            <div class="client-form-step">2</div>
+            <div class="client-form-fields">
+              <div class="client-block-title">
+                <strong>Vehículos</strong>
+                <span>Cargá todos los autos del cliente con marca, modelo y patente.</span>
+              </div>
+              <div class="form-grid client-primary-vehicle-grid">
+                <label>
+                  Patente
+                  <input id="clientPlate" required placeholder="Ej: AB123CD" />
+                </label>
+                <label>
+                  Marca
+                  <select id="clientBrand">
+                    <option value="">Seleccionar marca</option>
+                    <option>Toyota</option>
+                    <option>Volkswagen</option>
+                    <option>Ford</option>
+                    <option>Chevrolet</option>
+                    <option>Fiat</option>
+                    <option>Renault</option>
+                    <option>Peugeot</option>
+                    <option>Citroën</option>
+                    <option>Mercedes-Benz</option>
+                    <option>BMW</option>
+                    <option>Audi</option>
+                    <option>Honda</option>
+                    <option>Nissan</option>
+                    <option>Jeep</option>
+                    <option>Hyundai</option>
+                    <option>Kia</option>
+                    <option>Otro</option>
+                  </select>
+                </label>
+                <label>
+                  Modelo / vehículo
+                  <input id="clientVehicle" placeholder="Ej: Amarok gris" />
+                </label>
+              </div>
+              <div class="client-extra-vehicles">
+                <div class="items-head">
+                  <h3>Más vehículos</h3>
+                  <button class="secondary" type="button" id="addClientVehicle">Agregar vehículo</button>
+                </div>
+                <div class="client-vehicle-rows" id="clientVehicleRows"></div>
+              </div>
+            </div>
+          </section>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearClient">Limpiar</button>
+            <button class="primary" type="submit">Guardar cliente</button>
+          </div>
+        </form>
+        <div class="toolbar client-toolbar">
+          <div>
+            <p class="eyebrow">Base de clientes</p>
+            <strong id="clientListTitle">Clientes cargados</strong>
+          </div>
+          <input id="clientSearch" class="legacy-section-search" placeholder="Buscar por nombre, patente, marca o WhatsApp" />
+        </div>
+        <div class="client-grid" id="clientsTable"></div>
+      </section>
+
+      <section class="view" id="services">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Catálogo</p>
+            <h2>Servicios y precios</h2>
+          </div>
+        </div>
+        <form class="panel form-grid" id="serviceForm">
+          <input type="hidden" id="serviceId" />
+          <label>
+            Servicio
+            <input id="serviceName" required placeholder="Ej: Pulido one step" />
+          </label>
+          <label>
+            Precio
+            <input id="servicePrice" type="number" min="0" step="0.01" required placeholder="Ej: 85000 o 100" />
+          </label>
+          <label>
+            Moneda
+            <select id="serviceCurrency">
+              <option value="ARS">Pesos argentinos</option>
+              <option value="USD">Dólares</option>
+            </select>
+          </label>
+          <label>
+            Tipo de servicio
+            <select id="serviceCategory">
+              <option>Lavados</option>
+              <option>Polarizados</option>
+              <option>Pulidos</option>
+              <option>Tratamientos</option>
+              <option>Interior</option>
+              <option>Otros</option>
+            </select>
+          </label>
+          <label class="full">
+            Detalle
+            <textarea id="serviceDescription" rows="2" placeholder="Ej: Incluye lavado, descontaminado y sellador"></textarea>
+          </label>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearService">Limpiar</button>
+            <button class="primary" type="submit">Guardar servicio</button>
+          </div>
+        </form>
+        <div class="toolbar">
+          <select id="serviceCategoryFilter"></select>
+        </div>
+        <div class="service-groups" id="servicesTable">
+        </div>
+      </section>
+
+      <section class="view" id="products">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Inventario</p>
+            <h2>Productos y stock</h2>
+          </div>
+        </div>
+        <div class="stock-smart-grid" id="stockSmartSummary"></div>
+        <form class="panel form-grid" id="productForm">
+          <input type="hidden" id="productId" />
+          <label>
+            Producto
+            <input id="productName" required placeholder="Ej: Shampoo neutro 5L" />
+          </label>
+          <label>
+            Precio
+            <input id="productPrice" type="number" min="0" step="100" required placeholder="Ej: 18000" />
+          </label>
+          <label>
+            Stock actual
+            <input id="productStock" type="number" min="0" step="1" required placeholder="Ej: 4" />
+          </label>
+          <label>
+            Alerta de stock
+            <input id="productMinStock" type="number" min="0" step="1" required placeholder="Ej: 2" />
+          </label>
+          <label class="full">
+            Detalle
+            <textarea id="productDescription" rows="2" placeholder="Ej: Marca, tamaño, proveedor o uso recomendado"></textarea>
+          </label>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearProduct">Limpiar</button>
+            <button class="primary" type="submit">Guardar producto</button>
+          </div>
+        </form>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Detalle</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Alerta</th>
+                <th>Movimiento</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="productsTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="view" id="appointments">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Agenda</p>
+            <h2>Turnos</h2>
+          </div>
+          <div class="quick-actions">
+            <button class="primary" type="button" id="openAppointmentForm">Agendar turno</button>
+          </div>
+        </div>
+        <section class="panel appointments-priority-panel">
+          <div class="section-heading appointments-list-heading">
+            <div>
+              <p class="eyebrow">Pendientes / por cobrar</p>
+              <h3>Turnos para resolver</h3>
+            </div>
+          </div>
+          <div class="list" id="appointmentsList"></div>
+        </section>
+        <section class="panel appointment-agenda-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Semana</p>
+              <h3>Agenda lunes a sábado</h3>
+            </div>
+            <div class="agenda-tools">
+              <div class="segmented-control" id="agendaFilter" aria-label="Filtro de agenda">
+                <button class="active" type="button" data-agenda-filter="today">Hoy</button>
+                <button type="button" data-agenda-filter="tomorrow">Mañana</button>
+                <button type="button" data-agenda-filter="week">Semana</button>
+                <button type="button" data-agenda-filter="all">Todos</button>
+              </div>
+              <input id="weeklyDate" type="date" />
+            </div>
+          </div>
+          <div class="agenda-summary" id="agendaSummary"></div>
+          <div class="week-grid" id="weeklyAgenda"></div>
+        </section>
+        <form class="panel appointment-quick-form" id="appointmentForm" hidden>
+          <input type="hidden" id="appointmentId" />
+          <div class="appointment-form-head">
+            <div>
+              <p class="eyebrow">Nuevo turno</p>
+              <h3 id="appointmentFormTitle">Agendar turno</h3>
+            </div>
+            <button class="secondary" type="button" id="closeAppointmentForm">Cerrar</button>
+          </div>
+          <div class="appointment-form-block">
+            <div class="appointment-step">1</div>
+            <div class="appointment-fields">
+              <div class="appointment-block-title">
+                <strong>Cliente y vehículo</strong>
+                <span>Usá un cliente guardado o cargá uno rápido para el momento.</span>
+              </div>
+              <div class="form-grid appointment-client-grid">
+                <label>
+                  Cliente agendado
+                  <select id="appointmentClient"></select>
+                </label>
+                <label>
+                  Vehículo
+                  <select id="appointmentVehicle"></select>
+                  <small class="field-hint" id="appointmentVehicleInfo">Seleccioná un cliente para ver sus vehículos.</small>
+                </label>
+                <label>
+                  Cliente rápido
+                  <input id="appointmentGuestName" placeholder="Opcional si no está agendado" />
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="appointment-form-block">
+            <div class="appointment-step">2</div>
+            <div class="appointment-fields">
+              <div class="appointment-block-title">
+                <strong>Servicio y horario</strong>
+                <span>Elegí el trabajo, la fecha y el horario del turno.</span>
+              </div>
+              <div class="form-grid appointment-time-grid">
+                <label>
+                  Servicio
+                  <select id="appointmentService" required></select>
+                </label>
+                <label>
+                  Fecha
+                  <input id="appointmentDate" type="date" required />
+                </label>
+                <label>
+                  Horario
+                  <select id="appointmentTime" required></select>
+                </label>
+              </div>
+            </div>
+          </div>
+          <details class="advanced-box full">
+            <summary>Opciones avanzadas</summary>
+            <div class="form-grid">
+              <label>
+                WhatsApp rápido
+                <input id="appointmentGuestWhatsapp" placeholder="Opcional para recordatorio" />
+              </label>
+              <label>
+                Estado
+                <select id="appointmentStatus">
+                  <option>Pendiente</option>
+                  <option>Confirmado</option>
+                  <option>Realizado</option>
+                  <option>Cancelado</option>
+                </select>
+              </label>
+              <label class="full">
+                Notas
+                <textarea id="appointmentNotes" rows="2" placeholder="Ej: Cliente espera en el taller"></textarea>
+              </label>
+            </div>
+          </details>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="appointmentToday">Hoy</button>
+            <button class="secondary" type="button" id="appointmentTomorrow">Mañana</button>
+            <button class="secondary" type="button" id="clearAppointment">Limpiar</button>
+            <button class="primary" type="submit">Agendar</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="view" id="payments">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Caja</p>
+            <h2>Ingresos y cobros</h2>
+          </div>
+        </div>
+        <div class="metrics cash-metrics">
+          <div class="metric">
+            <span id="cashToday">$0</span>
+            <p>Cobrado hoy</p>
+          </div>
+          <div class="metric secondary-cash">
+            <span id="cashMonth">$0</span>
+            <p>Cobrado este mes</p>
+          </div>
+          <div class="metric">
+            <span id="cashPending">$0</span>
+            <p>Saldos pendientes</p>
+          </div>
+          <div class="metric secondary-cash">
+            <span id="cashCount">0</span>
+            <p>Cobros registrados</p>
+          </div>
+        </div>
+        <section class="panel cash-closing-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Cierre</p>
+              <h3>Caja del día</h3>
+            </div>
+            <div class="cash-closing-actions">
+              <input id="cashDate" type="date" />
+              <button class="secondary" type="button" id="downloadCashClosing">PDF cierre</button>
+            </div>
+          </div>
+          <div class="cash-closing-summary" id="cashClosingSummary"></div>
+          <div class="cash-method-grid" id="cashMethodGrid"></div>
+          <div class="list compact-list cash-closing-list" id="cashClosing"></div>
+        </section>
+        <form class="panel payment-quick-form payment-pos" id="paymentForm">
+          <input type="hidden" id="paymentId" />
+          <div class="payment-flow-steps" aria-label="Pasos de caja">
+            <span><strong>1</strong> Elegir</span>
+            <span><strong>2</strong> Sumar</span>
+            <span><strong>3</strong> Cobrar</span>
+          </div>
+          <div class="payment-cash-grid payment-pos-grid">
+            <section class="payment-cash-block payment-charge-block payment-catalog-block">
+              <div class="payment-block-title">
+                <span>2</span>
+                <div>
+                  <strong>Elegí qué vas a cobrar</strong>
+                  <small>Servicios y productos separados, con precio visible antes de sumar al ticket.</small>
+                </div>
+              </div>
+              <div class="payment-kind-switch" role="group" aria-label="Tipo de cobro">
+                <button class="active" type="button" data-payment-kind="service">Servicios</button>
+                <button type="button" data-payment-kind="product">Productos</button>
+              </div>
+              <div class="payment-catalog-grid" id="paymentCatalog"></div>
+              <div class="form-grid payment-charge-grid payment-picker-controls">
+                <input id="paymentService" type="hidden" />
+                <label class="payment-type-field payment-technical-field">
+                  Tipo de cobro
+                  <select id="paymentItemType" required>
+                    <option value="service">Servicio</option>
+                    <option value="product">Producto</option>
+                  </select>
+                </label>
+                <label class="payment-service-field">
+                  Servicio disponible
+                  <select id="paymentServiceChoice"></select>
+                </label>
+                <label class="payment-product-field">
+                  Producto disponible
+                  <select id="paymentProductChoice"></select>
+                </label>
+                <label>
+                  Cantidad
+                  <input id="paymentQuantity" type="number" min="1" step="1" value="1" />
+                </label>
+              </div>
+              <div class="payment-ticket-actions">
+                <button class="secondary" type="button" id="addPaymentItem">Agregar al cobro</button>
+              </div>
+              <div class="payment-total-card" id="paymentCalcHint">Elegí primero si vas a cobrar un servicio o un producto.</div>
+            </section>
+            <section class="payment-cash-block payment-ticket-block">
+              <div class="payment-block-title">
+                <span>3</span>
+                <div>
+                  <strong>Ticket y cobro</strong>
+                  <small>El total se suma solo. Cargá con cuánto paga recién al final.</small>
+                </div>
+              </div>
+              <div class="payment-ticket-head">
+                <span>Ticket actual</span>
+                <button class="secondary compact-button" type="button" id="clearPaymentItems">Vaciar</button>
+              </div>
+              <div class="payment-ticket-list" id="paymentTicketList"></div>
+              <div class="payment-checkout-grid">
+                <label>
+                  Total
+                  <input id="paymentAmount" type="number" min="0" step="0.01" required readonly value="0" />
+                </label>
+                <label>
+                  Paga con
+                  <input id="paymentReceived" type="number" min="0" step="0.01" placeholder="Ej: 30000" />
+                </label>
+                <label>
+                  Vuelto
+                  <input id="paymentChange" type="text" readonly value="$ 0" />
+                </label>
+                <label>
+                  Método
+                  <select id="paymentMethod" required>
+                    <option>Efectivo</option>
+                    <option>Transferencia</option>
+                    <option>Mercado Pago</option>
+                    <option>Tarjeta</option>
+                  </select>
+                </label>
+              </div>
+              <details class="payment-client-optional">
+                <summary>Asociar cliente o turno</summary>
+                <div class="form-grid payment-client-cash-grid">
+                  <label>
+                    Cliente
+                    <select id="paymentClient"></select>
+                  </label>
+                  <label>
+                    Vehículo
+                    <select id="paymentVehicle"></select>
+                  </label>
+                  <label>
+                    Nombre en recibo
+                    <input id="paymentGuestName" placeholder="Opcional: consumidor final o nombre" />
+                  </label>
+                  <label>
+                    WhatsApp rápido
+                    <input id="paymentGuestWhatsapp" placeholder="Opcional para enviar recibo" />
+                  </label>
+                  <label class="full">
+                    Turno asociado
+                    <select id="paymentAppointment">
+                      <option value="">Cobro sin turno</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+            </section>
+          </div>
+          <details class="advanced-box full">
+            <summary>Fecha, moneda y notas</summary>
+            <div class="form-grid">
+              <label>
+                Fecha de cobro
+                <input id="paymentDate" type="date" required />
+              </label>
+              <label>
+                Estado del pago
+                <select id="paymentType">
+                  <option value="Pago total">Pago total</option>
+                  <option value="Seña">Seña</option>
+                  <option value="Saldo">Saldo</option>
+                  <option value="Adicional">Adicional</option>
+                </select>
+              </label>
+              <label>
+                Moneda
+                <select id="paymentCurrency">
+                  <option value="ARS">ARS</option>
+                  <option value="USD">USD</option>
+                </select>
+              </label>
+              <label class="full">
+                Notas
+                <textarea id="paymentNotes" rows="2" placeholder="Ej: Seña, pago total o saldo pendiente"></textarea>
+              </label>
+            </div>
+          </details>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearPayment">Limpiar</button>
+            <button class="primary" type="submit">Cobrar</button>
+          </div>
+        </form>
+        <section class="panel payment-done-panel" id="paymentDonePanel" hidden></section>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Pendientes</p>
+              <h3>Saldos por cobrar</h3>
+            </div>
+          </div>
+          <div class="list compact-list" id="pendingBalances"></div>
+        </section>
+        <details class="panel advanced-box">
+          <summary>Ver filtros e historial de cobros</summary>
+          <div class="toolbar">
+            <input id="paymentSearch" class="legacy-section-search" placeholder="Buscar cobro por cliente, servicio, método o recibo" />
+            <select id="paymentMethodFilter">
+              <option value="">Todos los métodos</option>
+              <option>Efectivo</option>
+              <option>Transferencia</option>
+              <option>Mercado Pago</option>
+              <option>Tarjeta</option>
+            </select>
+            <select id="paymentCurrencyFilter">
+              <option value="">Todas las monedas</option>
+              <option value="ARS">ARS</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+          <div class="list" id="paymentsList"></div>
+        </details>
+      </section>
+
+      <section class="view" id="quotes">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Ventas</p>
+            <h2>Cotizaciones</h2>
+          </div>
+        </div>
+        <div class="document-summary" id="quoteSummary"></div>
+        <form class="panel" id="quoteForm">
+          <input type="hidden" id="quoteId" />
+          <div class="form-grid">
+            <label>
+              Cliente
+              <select id="quoteClient" required></select>
+            </label>
+            <label>
+              Vehículo
+              <select id="quoteVehicle" required></select>
+            </label>
+            <label>
+              Válida hasta
+              <input id="quoteValidUntil" type="date" required />
+            </label>
+            <label class="full">
+              Observaciones
+              <textarea id="quoteNotes" rows="2" placeholder="Ej: Incluye descontaminado y sellador"></textarea>
+            </label>
+          </div>
+          <div class="items-head">
+            <h3>Servicios</h3>
+            <button class="secondary" type="button" id="addQuoteItem">Agregar servicio</button>
+          </div>
+          <div class="items" id="quoteItems"></div>
+          <div class="total-line">
+            <span>Total cotizado</span>
+            <strong id="quoteTotal">$0</strong>
+          </div>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearQuote">Limpiar</button>
+            <button class="primary" type="submit">Guardar cotización</button>
+          </div>
+        </form>
+        <div class="section-heading document-list-heading">
+          <div>
+            <p class="eyebrow">Historial</p>
+            <h3>Cotizaciones guardadas</h3>
+          </div>
+        </div>
+        <div class="list" id="quotesList"></div>
+      </section>
+
+      <section class="view" id="invoices">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Administración</p>
+            <h2>Facturas PDF</h2>
+          </div>
+        </div>
+        <div class="document-summary" id="invoiceSummary"></div>
+        <form class="panel" id="invoiceForm">
+          <input type="hidden" id="invoiceId" />
+          <div class="form-grid">
+            <label>
+              Cliente
+              <select id="invoiceClient" required></select>
+            </label>
+            <label>
+              Desde cotización
+              <select id="invoiceQuote">
+                <option value="">Factura manual</option>
+              </select>
+            </label>
+            <label>
+              Fecha
+              <input id="invoiceDate" type="date" required />
+            </label>
+            <label>
+              Estado
+              <select id="invoiceStatus">
+                <option>Pendiente</option>
+                <option>Pagada</option>
+              </select>
+            </label>
+            <label class="full">
+              Observaciones
+              <textarea id="invoiceNotes" rows="2" placeholder="Ej: Abonado por transferencia"></textarea>
+            </label>
+          </div>
+          <div class="items-head">
+            <h3>Servicios facturados</h3>
+            <button class="secondary" type="button" id="addInvoiceItem">Agregar servicio</button>
+          </div>
+          <div class="items" id="invoiceItems"></div>
+          <div class="total-line">
+            <span>Total factura</span>
+            <strong id="invoiceTotal">$0</strong>
+          </div>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearInvoice">Limpiar</button>
+            <button class="primary" type="submit">Guardar factura</button>
+          </div>
+        </form>
+        <div class="section-heading document-list-heading">
+          <div>
+            <p class="eyebrow">Historial</p>
+            <h3>Facturas emitidas</h3>
+          </div>
+        </div>
+        <div class="list" id="invoicesList"></div>
+      </section>
+
+      <section class="view" id="reports">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Gestión</p>
+            <h2>Reporte mensual</h2>
+          </div>
+          <input id="reportMonth" type="month" />
+        </div>
+        <section class="report-hero panel">
+          <div>
+            <p class="eyebrow">Resumen ejecutivo</p>
+            <h3 id="reportTitle">Mes en curso</h3>
+            <p id="reportSummary">Ingresos, turnos y clientes del mes.</p>
+            <div class="report-hero-pills" id="reportHeroPills"></div>
+          </div>
+          <div class="report-hero-total">
+            <span id="reportIncome">$0</span>
+            <small>Ingresos cobrados</small>
+          </div>
+        </section>
+        <section class="report-command-panel">
+          <article>
+            <span>Mejor servicio</span>
+            <strong id="reportTopService">-</strong>
+            <small id="reportTopServiceDetail">Sin datos</small>
+          </article>
+          <article>
+            <span>Mejor cliente</span>
+            <strong id="reportTopClient">-</strong>
+            <small id="reportTopClientDetail">Sin datos</small>
+          </article>
+          <article>
+            <span>Método principal</span>
+            <strong id="reportTopMethod">-</strong>
+            <small id="reportTopMethodDetail">Sin datos</small>
+          </article>
+        </section>
+        <div class="metrics report-metrics">
+          <div class="metric">
+            <span id="reportPayments">0</span>
+            <p>Cobros registrados</p>
+          </div>
+          <div class="metric">
+            <span id="reportAverageTicket">$0</span>
+            <p>Ticket promedio</p>
+          </div>
+          <div class="metric">
+            <span id="reportAppointments">0</span>
+            <p>Turnos del mes</p>
+          </div>
+          <div class="metric">
+            <span id="reportClients">0</span>
+            <p>Clientes atendidos</p>
+          </div>
+        </div>
+        <section class="panel quality-panel">
+          <div class="quality-score-card">
+            <p class="eyebrow">Panel de calidad</p>
+            <strong id="reportQualityScore">0</strong>
+            <span id="reportQualityGrade">Sin actividad</span>
+          </div>
+          <div class="quality-panel-main">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Control operativo</p>
+                <h3>Calidad del mes</h3>
+              </div>
+            </div>
+            <div class="quality-grid" id="reportQualityGrid"></div>
+            <div class="quality-insights" id="reportQualityInsights"></div>
+          </div>
+        </section>
+        <section class="panel report-health-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Lectura rápida</p>
+              <h3>Salud del mes</h3>
+            </div>
+          </div>
+          <div class="report-health-bars" id="reportHealthBars"></div>
+        </section>
+        <section class="panel report-comparison-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Comparativa</p>
+              <h3>Meses anteriores</h3>
+            </div>
+          </div>
+          <div class="report-comparison-summary" id="reportComparisonSummary"></div>
+          <div class="report-month-table-wrap">
+            <div class="report-month-table" id="reportMonthlyComparison"></div>
+          </div>
+        </section>
+        <div class="report-layout">
+          <section class="panel report-card report-card-large">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Rendimiento</p>
+                <h3>Servicios más vendidos</h3>
+              </div>
+            </div>
+            <div class="list compact-list report-ranked-list" id="reportServices"></div>
+          </section>
+          <section class="panel report-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Caja</p>
+                <h3>Ingresos por método</h3>
+              </div>
+            </div>
+            <div class="list compact-list" id="reportMethods"></div>
+          </section>
+          <section class="panel report-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Clientes</p>
+                <h3>Clientes que más pagaron</h3>
+              </div>
+            </div>
+            <div class="list compact-list report-ranked-list" id="reportTopClients"></div>
+          </section>
+          <section class="panel report-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Agenda</p>
+                <h3>Estado de turnos</h3>
+              </div>
+            </div>
+            <div class="report-status-grid" id="reportStatuses"></div>
+          </section>
+          <section class="panel report-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Ventas</p>
+                <h3>Cotizaciones y facturas</h3>
+              </div>
+            </div>
+            <div class="report-sales-grid">
+              <article>
+                <strong id="reportQuotes">0</strong>
+                <span>Cotizaciones</span>
+              </article>
+              <article>
+                <strong id="reportInvoices">0</strong>
+                <span>Facturas</span>
+              </article>
+              <article>
+                <strong id="reportConversion">0%</strong>
+                <span>Conversión</span>
+              </article>
+            </div>
+          </section>
+          <section class="panel report-card report-card-large">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Actividad</p>
+                <h3>Últimos cobros del mes</h3>
+              </div>
+            </div>
+            <div class="list compact-list" id="reportRecentPayments"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="whatsappTemplates">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Comunicación</p>
+            <h2>Plantillas de WhatsApp</h2>
+          </div>
+        </div>
+        <form class="panel form-grid" id="templateForm">
+          <input type="hidden" id="templateId" />
+          <label>
+            Nombre de plantilla
+            <input id="templateName" required placeholder="Ej: Auto listo" />
+          </label>
+          <label>
+            Cliente para probar/enviar
+            <select id="templateClient"></select>
+          </label>
+          <label class="full">
+            Mensaje
+            <textarea id="templateBody" rows="4" required placeholder="Hola {cliente}, tu vehículo {patente} ya está listo."></textarea>
+          </label>
+          <div class="helper-text full">Variables disponibles: {cliente}, {patente}, {vehiculo}, {fecha}, {hora}, {servicio}, {total}, {taller}</div>
+          <div class="form-actions">
+            <button class="secondary" type="button" id="clearTemplate">Limpiar</button>
+            <button class="primary" type="submit">Guardar plantilla</button>
+          </div>
+        </form>
+        <div class="split">
+          <section>
+            <div class="section-heading">
+              <h3>Plantillas guardadas</h3>
+            </div>
+            <div class="list" id="templatesList"></div>
+          </section>
+          <section class="panel">
+            <div class="section-heading">
+              <h3>Vista previa</h3>
+              <button class="whatsapp" id="sendTemplateWhatsapp" type="button">Enviar WhatsApp</button>
+            </div>
+            <div class="message-preview" id="templatePreview"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="settings">
+        <div class="page-title">
+          <div>
+            <p class="eyebrow">Datos fiscales</p>
+            <h2>Tu taller</h2>
+          </div>
+        </div>
+        <form class="panel form-grid" id="settingsForm">
+          <label>
+            Nombre del taller
+            <input id="shopName" required />
+          </label>
+          <label>
+            WhatsApp del taller
+            <input id="shopWhatsapp" />
+          </label>
+          <label>
+            Dirección
+            <input id="shopAddress" />
+          </label>
+          <label>
+            CUIT / Identificación
+            <input id="shopTaxId" />
+          </label>
+          <label>
+            Alias / CBU
+            <input id="shopPayment" />
+          </label>
+          <label>
+            Condición fiscal
+            <input id="shopTaxCondition" placeholder="Ej: Responsable Monotributo" />
+          </label>
+          <label>
+            Usuario de acceso
+            <input id="loginUserSetting" required />
+          </label>
+          <label>
+            Contraseña de acceso
+            <input id="loginPasswordSetting" required />
+          </label>
+          <label>
+            Tema del CRM
+            <select id="appTheme">
+              <option value="dark">Oscuro</option>
+              <option value="light">Claro</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button class="primary" type="submit">Guardar datos</button>
+          </div>
+        </form>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Seguridad</p>
+              <h3>Backup de datos</h3>
+            </div>
+          </div>
+          <div class="backup-actions">
+            <button class="primary" type="button" id="exportBackup">Exportar backup</button>
+            <label class="secondary file-button">
+              Importar backup
+              <input id="importBackup" type="file" accept="application/json,.json" />
+            </label>
+          </div>
+          <p class="helper-text">Guardá una copia periódica para no depender solo del navegador.</p>
+        </section>
+      </section>
+    </main>
+    <nav class="mobile-bottom-nav" aria-label="Navegación móvil">
+      <button class="tab active" type="button" data-tab="dashboard">Inicio</button>
+      <button class="tab" type="button" data-tab="appointments">Turnos</button>
+      <button class="tab" type="button" data-tab="payments">Caja</button>
+      <button class="tab" type="button" data-tab="clients">Clientes</button>
+      <button class="tab" type="button" id="mobileMoreToggle">Más</button>
+    </nav>
+    <div class="mobile-more-backdrop" id="mobileMorePanel" hidden aria-hidden="true">
+      <section class="mobile-more-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Más secciones</p>
+            <h3>Herramientas del CRM</h3>
+          </div>
+          <button class="secondary" type="button" id="mobileMoreClose">Cerrar</button>
+        </div>
+        <div class="mobile-more-grid">
+          <button class="secondary" type="button" data-open-tab="reception">Recepción</button>
+          <button class="secondary" type="button" data-open-tab="services">Servicios</button>
+          <button class="secondary" type="button" data-open-tab="products">Productos</button>
+          <button class="secondary" type="button" data-open-tab="quotes">Cotizaciones</button>
+          <button class="secondary" type="button" data-open-tab="invoices">Facturas</button>
+          <button class="secondary" type="button" data-open-tab="reports">Reportes</button>
+          <button class="secondary" type="button" data-open-tab="whatsappTemplates">WhatsApp</button>
+          <button class="secondary" type="button" data-open-tab="settings">Taller</button>
+        </div>
+      </section>
+    </div>
+    <button class="universal-fab" type="button" id="universalActionToggle" aria-expanded="false">+</button>
+    <div class="universal-action-backdrop" id="universalActionPanel" hidden aria-hidden="true">
+      <section class="universal-action-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Acción rápida</p>
+            <h3>Crear o buscar</h3>
+          </div>
+          <button class="secondary" type="button" id="universalActionClose">Cerrar</button>
+        </div>
+        <div class="universal-action-grid">
+          <button class="primary" type="button" data-universal-action="reception">Ingresar auto</button>
+          <button class="secondary" type="button" data-universal-action="client">Nuevo cliente</button>
+          <button class="secondary" type="button" data-universal-action="appointment">Nuevo turno</button>
+          <button class="whatsapp" type="button" data-universal-action="payment">Nuevo cobro</button>
+          <button class="secondary" type="button" data-universal-action="quote">Nueva cotización</button>
+          <button class="secondary" type="button" data-universal-action="product">Nuevo producto</button>
+        </div>
+      </section>
+    </div>
+
+    <template id="itemTemplate">
+      <div class="item-row">
+        <select class="item-service">
+          <option value="">Servicio personalizado</option>
+        </select>
+        <input class="item-desc" placeholder="Servicio" required />
+        <input class="item-qty" type="number" min="1" step="1" value="1" required />
+        <input class="item-price" type="number" min="0" step="0.01" placeholder="Precio" required />
+        <select class="item-currency">
+          <option value="ARS">ARS</option>
+          <option value="USD">USD</option>
+        </select>
+        <button class="icon-btn remove-item" type="button" aria-label="Eliminar servicio">×</button>
+      </div>
+    </template>
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+    <div class="confirm-backdrop" id="confirmDialog" aria-hidden="true">
+      <section class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <p class="eyebrow" id="confirmEyebrow">Confirmar acción</p>
+        <h3 id="confirmTitle">¿Querés continuar?</h3>
+        <p id="confirmMessage">Esta acción modifica información del CRM.</p>
+        <div class="confirm-actions">
+          <button class="secondary" type="button" id="confirmCancel">Cancelar</button>
+          <button class="danger" type="button" id="confirmAccept">Confirmar</button>
+        </div>
+      </section>
+    </div>
+    <div class="receipt-modal-backdrop" id="receiptModal" hidden aria-hidden="true">
+      <section class="receipt-modal-card" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+        <div class="receipt-modal-toolbar">
+          <div>
+            <p class="eyebrow">Recibo generado</p>
+            <h3 id="receiptModalTitle">Comprobante</h3>
+          </div>
+          <div class="receipt-modal-actions">
+            <button class="secondary" type="button" id="receiptModalDownload">Descargar PDF</button>
+            <button class="whatsapp" type="button" id="receiptModalWhatsapp">WhatsApp PDF</button>
+            <button class="secondary" type="button" id="closeReceiptModal">Cerrar</button>
+          </div>
+        </div>
+        <div class="receipt-modal-scroll">
+          <div class="receipt-modal-document" id="receiptModalDocument"></div>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js?v=20260803-clientes-excel-whatsapp1"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.getRegistrations()
+            .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+            .catch(() => {});
+        });
+      }
+      if ("caches" in window) {
+        caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => {});
+      }
+    </script>
+  </body>
+</html>
