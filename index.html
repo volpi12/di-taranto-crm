@@ -7,7 +7,7 @@
     <meta name="format-detection" content="telephone=no" />
     <title>CRM Detailing</title>
     <link rel="apple-touch-icon" href="assets/ditaranto-logo-transparent.png" />
-    <link rel="stylesheet" href="styles.css?v=20260803-clientes-excel-whatsapp1" />
+    <link rel="stylesheet" href="styles.css?v=20260813-cliente-migrador1" />
   </head>
   <body class="locked tidy-ui">
     <section class="login-screen" id="loginScreen">
@@ -1268,6 +1268,32 @@
           </div>
           <p class="helper-text">Guardá una copia periódica para no depender solo del navegador.</p>
         </section>
+        <section class="panel migration-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Migrador inteligente</p>
+              <h3>Traer datos de la Mac sin duplicar</h3>
+            </div>
+          </div>
+          <div class="migration-drop">
+            <div>
+              <strong>Comparar backup antes de importar</strong>
+              <span>Elegí un backup JSON de la Mac. El CRM revisa clientes, vehículos, turnos, cobros, cotizaciones, facturas, servicios y productos antes de fusionar.</span>
+            </div>
+            <label class="primary file-button">
+              Analizar backup
+              <input id="smartMigrationFile" type="file" accept="application/json,.json" />
+            </label>
+          </div>
+          <div class="migration-preview" id="migrationPreview">
+            <div class="empty">Todavía no hay backup analizado.</div>
+          </div>
+          <div class="form-actions migration-actions">
+            <button class="secondary" type="button" id="clearMigration" disabled>Limpiar análisis</button>
+            <button class="primary" type="button" id="applyMigration" disabled>Fusionar datos revisados</button>
+          </div>
+          <p class="helper-text">La fusión agrega lo que falta y une clientes por WhatsApp, patente o nombre para evitar duplicados.</p>
+        </section>
       </section>
     </main>
     <nav class="mobile-bottom-nav" aria-label="Navegación móvil">
@@ -1365,7 +1391,7 @@
       </section>
     </div>
 
-    <script src="app.js?v=20260803-clientes-excel-whatsapp1"></script>
+    <script src="app.js?v=20260813-cliente-migrador1"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {

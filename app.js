@@ -109,6 +109,7 @@ let syncPollTimer = null;
 let syncingFromServer = false;
 let searchIndexCache = { stamp: "", items: [] };
 let receptionSummaryFrame = null;
+let migrationDraft = null;
 
 function debounce(fn, delay = 120) {
   let timer = null;
@@ -3411,6 +3412,54 @@ function updateTemplatePreview() {
   $("#templatePreview").textContent = fillTemplate(body, $("#templateClient").value);
 }
 
+function quickClientSuggestions() {
+  const weighted = new Map();
+  const addClient = (clientId, reason, weight = 1) => {
+    const client = getClient(clientId);
+    if (!client) return;
+    const current = weighted.get(client.id) || { client, reasons: [], weight: 0 };
+    current.weight += weight;
+    if (reason && !current.reasons.includes(reason)) current.reasons.push(reason);
+    weighted.set(client.id, current);
+  };
+  sortedAppointments()
+    .filter((appointment) => appointment.status !== "Cancelado" && appointment.date >= today())
+    .slice(0, 10)
+    .forEach((appointment) => addClient(appointment.clientId, `Próximo turno ${dateLabel(appointment.date)} ${appointment.time || ""}`, 5));
+  state.payments
+    .slice(0, 12)
+    .forEach((payment) => addClient(payment.clientId, `Último cobro ${dateLabel(payment.date)}`, 3));
+  pendingAppointmentBalances()
+    .forEach(({ appointment }) => addClient(appointment.clientId, "Tiene saldo pendiente", 6));
+  state.clients.slice(0, 8).forEach((client) => addClient(client.id, "Cliente reciente", 1));
+  return [...weighted.values()]
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 6);
+}
+
+function renderQuickClientSuggestions() {
+  const suggestions = quickClientSuggestions();
+  if (!suggestions.length) return `<div class="empty">Cargá clientes para usar la ficha rápida.</div>`;
+  return `
+    <div class="search-suggestions-head">
+      <strong>Clientes a mano</strong>
+      <span>tocá uno para abrir su ficha</span>
+    </div>
+    ${suggestions.map(({ client, reasons }) => {
+      const vehicle = primaryVehicle(client);
+      return `
+        <button class="search-result search-client-suggestion" type="button" data-search-type="client" data-search-id="${client.id}">
+          <span class="suggestion-main">
+            <strong>${escapeHtml(client.name)}</strong>
+            ${plateBadge(vehicle.plate, true)}
+          </span>
+          <span>${escapeHtml(reasons.slice(0, 2).join(" · ") || formatWhatsappDisplay(client.whatsapp))}</span>
+        </button>
+      `;
+    }).join("")}
+  `;
+}
+
 function globalSearchItems() {
   const stamp = [
     state._updatedAt || "",
@@ -3497,10 +3546,17 @@ function globalSearchItems() {
 }
 
 function renderGlobalSearch() {
-  const query = $("#globalSearch").value.trim().toLowerCase();
+  const input = $("#globalSearch");
+  const query = input.value.trim().toLowerCase();
+  const resultsPanel = $("#globalResults");
+  if (!query && document.activeElement === input) {
+    resultsPanel.classList.add("active");
+    resultsPanel.innerHTML = renderQuickClientSuggestions();
+    return;
+  }
   if (!query) {
-    $("#globalResults").classList.remove("active");
-    $("#globalResults").innerHTML = "";
+    resultsPanel.classList.remove("active");
+    resultsPanel.innerHTML = "";
     return;
   }
   const results = globalSearchItems()
@@ -3513,8 +3569,8 @@ function renderGlobalSearch() {
     { keywords: ["producto", "stock"], action: "product", title: "Nuevo producto", detail: "Cargar producto y stock" },
     { keywords: ["cotizacion", "cotización", "presupuesto"], action: "quote", title: "Nueva cotización", detail: "Crear cotización para enviar" },
   ].filter((item) => item.keywords.some((keyword) => query.includes(keyword))).slice(0, 3);
-  $("#globalResults").classList.add("active");
-  $("#globalResults").innerHTML =
+  resultsPanel.classList.add("active");
+  resultsPanel.innerHTML =
     [
       ...actions.map(
         (item) => `
@@ -3634,9 +3690,11 @@ function showQuickProfile(clientId, vehicleId = "") {
       </div>
       <div class="quick-profile-actions">
         <button class="secondary" type="button" data-quick-action="history" data-quick-client="${client.id}" data-quick-vehicle="${vehicleId}">Historial</button>
+        <button class="secondary" type="button" data-quick-action="edit" data-quick-client="${client.id}" data-quick-vehicle="${vehicleId}">Editar</button>
         <button class="secondary" type="button" data-quick-action="appointment" data-quick-client="${client.id}" data-quick-vehicle="${vehicleId}">Agendar</button>
         <button class="secondary" type="button" data-quick-action="quote" data-quick-client="${client.id}" data-quick-vehicle="${vehicleId}">Cotizar</button>
         <button class="primary" type="button" data-quick-action="payment" data-quick-client="${client.id}" data-quick-vehicle="${vehicleId}">Cobrar</button>
+        ${client.whatsapp ? `<button class="secondary" type="button" data-copy-whatsapp="${escapeHtml(client.whatsapp)}">Copiar WhatsApp</button>` : ""}
         ${whatsappHref ? `<a class="whatsapp" target="_blank" rel="noreferrer" href="${whatsappHref}">WhatsApp</a>` : ""}
       </div>
       <div class="quick-profile-timeline">
@@ -3665,6 +3723,15 @@ function runQuickProfileAction(action, clientId, vehicleId = "") {
     renderClientHistory();
     fillClientForm(client);
     switchTab("clients");
+    return;
+  }
+  if (action === "edit") {
+    fillClientForm(client);
+    selectedClientHistoryId = clientId;
+    selectedClientHistoryVehicleId = vehicleId || "";
+    renderClientHistory();
+    switchTab("clients");
+    $("#clientName")?.focus();
     return;
   }
   if (action === "appointment") {
@@ -3891,6 +3958,7 @@ function renderAll() {
   renderReceptionMatches();
   renderReceptionSummary();
   renderNotifications();
+  renderMigrationTool();
   enhanceButtonIcons();
 }
 
@@ -4547,6 +4615,307 @@ function exportBackup() {
   downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), fileName);
 }
 
+function readBackupFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error("Archivo no seleccionado."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || "{}"));
+        resolve(normalizeState(parsed.state || parsed));
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+function cleanTextKey(value = "") {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function clientSignature(client = {}) {
+  const vehicles = clientVehicles(client);
+  return {
+    id: client.id || "",
+    name: cleanTextKey(client.name),
+    whatsapp: String(client.whatsapp || "").replace(/\D/g, ""),
+    plates: vehicles.map((vehicle) => normalizePlate(vehicle.plate)).filter(Boolean),
+  };
+}
+
+function findClientMigrationMatch(importedClient, targetClients = state.clients) {
+  const imported = clientSignature(importedClient);
+  return targetClients.find((client) => {
+    const current = clientSignature(client);
+    if (imported.id && imported.id === current.id) return true;
+    if (imported.whatsapp && imported.whatsapp === current.whatsapp) return true;
+    if (imported.plates.some((plate) => current.plates.includes(plate))) return true;
+    return imported.name && imported.name === current.name;
+  });
+}
+
+function mergeClientRecord(currentClient, importedClient, maps) {
+  const target = currentClient ? { ...currentClient } : { ...importedClient, id: importedClient.id || uid("client") };
+  const importedVehicles = clientVehicles(importedClient);
+  const currentVehicles = clientVehicles(target);
+  const vehicleMap = maps.vehicleIds;
+  if (!target.name && importedClient.name) target.name = importedClient.name;
+  if (!target.whatsapp && importedClient.whatsapp) target.whatsapp = importedClient.whatsapp;
+  target.vehicles = [...currentVehicles];
+  importedVehicles.forEach((vehicle) => {
+    const existingVehicle = target.vehicles.find((item) => {
+      const samePlate = vehicle.plate && item.plate && normalizePlate(vehicle.plate) === normalizePlate(item.plate);
+      const sameModel = cleanTextKey(vehicle.vehicle) && cleanTextKey(vehicle.vehicle) === cleanTextKey(item.vehicle) && normalizeBrand(vehicle.brand) === normalizeBrand(item.brand);
+      return samePlate || sameModel || (vehicle.id && item.id === vehicle.id);
+    });
+    if (existingVehicle) {
+      vehicleMap.set(vehicle.id, existingVehicle.id);
+      existingVehicle.brand = existingVehicle.brand || vehicle.brand;
+      existingVehicle.vehicle = existingVehicle.vehicle || vehicle.vehicle;
+      existingVehicle.plate = existingVehicle.plate || vehicle.plate;
+      return;
+    }
+    const nextVehicle = { ...vehicle, id: vehicle.id || uid("vehicle") };
+    vehicleMap.set(vehicle.id, nextVehicle.id);
+    target.vehicles.push(nextVehicle);
+  });
+  target.plate = target.vehicles[0]?.plate || target.plate || "";
+  target.brand = target.vehicles[0]?.brand || target.brand || "";
+  target.vehicle = target.vehicles[0]?.vehicle || target.vehicle || "";
+  maps.clientIds.set(importedClient.id, target.id);
+  return target;
+}
+
+function collectionMatch(collection, importedItem, matchers = []) {
+  return collection.find((item) => {
+    if (importedItem.id && item.id === importedItem.id) return true;
+    return matchers.some((matcher) => matcher(item, importedItem));
+  });
+}
+
+function migrateRecordReferences(item, maps) {
+  const next = { ...item };
+  if (next.clientId && maps.clientIds.has(next.clientId)) next.clientId = maps.clientIds.get(next.clientId);
+  if (next.vehicleId && maps.vehicleIds.has(next.vehicleId)) next.vehicleId = maps.vehicleIds.get(next.vehicleId);
+  if (next.serviceId && maps.serviceIds?.has(next.serviceId)) next.serviceId = maps.serviceIds.get(next.serviceId);
+  if (next.productId && maps.productIds?.has(next.productId)) next.productId = maps.productIds.get(next.productId);
+  if (Array.isArray(next.items)) {
+    next.items = next.items.map((line) => ({
+      ...line,
+      serviceId: line.serviceId && maps.serviceIds?.has(line.serviceId) ? maps.serviceIds.get(line.serviceId) : line.serviceId,
+      productId: line.productId && maps.productIds?.has(line.productId) ? maps.productIds.get(line.productId) : line.productId,
+      itemId: line.itemId && maps.serviceIds?.has(line.itemId)
+        ? maps.serviceIds.get(line.itemId)
+        : line.itemId && maps.productIds?.has(line.itemId)
+          ? maps.productIds.get(line.itemId)
+          : line.itemId,
+    }));
+  }
+  if (next.vehicle) next.vehicle = normalizeVehicleEntry(next.vehicle);
+  return next;
+}
+
+function buildMigrationPlan(importedState) {
+  const plan = {
+    importedState,
+    summary: {},
+    duplicates: [],
+    actions: [],
+  };
+  const maps = { clientIds: new Map(), vehicleIds: new Map(), serviceIds: new Map(), productIds: new Map() };
+  const working = normalizeState(state);
+  const addSummary = (key, added = 0, updated = 0, skipped = 0) => {
+    plan.summary[key] = {
+      added: (plan.summary[key]?.added || 0) + added,
+      updated: (plan.summary[key]?.updated || 0) + updated,
+      skipped: (plan.summary[key]?.skipped || 0) + skipped,
+    };
+  };
+
+  (importedState.clients || []).forEach((client) => {
+    const match = findClientMigrationMatch(client, working.clients);
+    const merged = mergeClientRecord(match, client, maps);
+    if (match) {
+      const index = working.clients.findIndex((item) => item.id === match.id);
+      working.clients[index] = merged;
+      addSummary("clients", 0, 1);
+      plan.duplicates.push(`${client.name || "Cliente"} se fusiona con ${match.name || "cliente existente"}`);
+    } else {
+      working.clients.unshift(merged);
+      addSummary("clients", 1, 0);
+    }
+  });
+
+  const mergeCollections = [
+    {
+      key: "services",
+      label: "servicios",
+      matchers: [(a, b) => cleanTextKey(a.name) === cleanTextKey(b.name) && serviceCategory(a) === serviceCategory(b)],
+      normalize: (item) => ({ ...item, currency: normalizeCurrency(item.currency) }),
+      map: "serviceIds",
+    },
+    {
+      key: "products",
+      label: "productos",
+      matchers: [(a, b) => cleanTextKey(a.name) === cleanTextKey(b.name)],
+      normalize: (item) => ({ ...item }),
+      map: "productIds",
+    },
+    {
+      key: "appointments",
+      label: "turnos",
+      matchers: [
+        (a, b) => a.date === b.date && a.time === b.time && a.clientId === b.clientId && cleanTextKey(a.serviceName || getService(a.serviceId)?.name) === cleanTextKey(b.serviceName || getService(b.serviceId)?.name),
+      ],
+      normalize: (item) => migrateRecordReferences(item, maps),
+    },
+    {
+      key: "payments",
+      label: "cobros",
+      matchers: [(a, b) => a.receiptNumber && a.receiptNumber === b.receiptNumber],
+      normalize: (item) => migrateRecordReferences(item, maps),
+    },
+    {
+      key: "quotes",
+      label: "cotizaciones",
+      matchers: [(a, b) => a.number && a.number === b.number],
+      normalize: (item) => migrateRecordReferences(item, maps),
+    },
+    {
+      key: "invoices",
+      label: "facturas",
+      matchers: [(a, b) => a.number && a.number === b.number],
+      normalize: (item) => migrateRecordReferences(item, maps),
+    },
+    {
+      key: "whatsappTemplates",
+      label: "plantillas",
+      matchers: [(a, b) => cleanTextKey(a.name) === cleanTextKey(b.name)],
+      normalize: (item) => ({ ...item }),
+    },
+  ];
+
+  mergeCollections.forEach(({ key, matchers, normalize, map }) => {
+    const importedItems = Array.isArray(importedState[key]) ? importedState[key] : [];
+    working[key] = Array.isArray(working[key]) ? working[key] : [];
+    importedItems.forEach((rawItem) => {
+      const item = normalize(rawItem);
+      const match = collectionMatch(working[key], item, matchers);
+      if (match) {
+        const index = working[key].findIndex((current) => current.id === match.id);
+        working[key][index] = { ...match, ...item, id: match.id || item.id || uid(key) };
+        if (map && item.id) maps[map].set(item.id, working[key][index].id);
+        addSummary(key, 0, 1);
+      } else {
+        const nextItem = { ...item, id: item.id || uid(key) };
+        working[key].unshift(nextItem);
+        if (map && item.id) maps[map].set(item.id, nextItem.id);
+        addSummary(key, 1, 0);
+      }
+    });
+  });
+
+  working.settings = { ...working.settings, ...(importedState.settings || {}), appTheme: state.settings.appTheme };
+  working._updatedAt = new Date().toISOString();
+  plan.nextState = working;
+  return plan;
+}
+
+function migrationSummaryLabel(key) {
+  return {
+    clients: "Clientes",
+    services: "Servicios",
+    products: "Productos",
+    appointments: "Turnos",
+    payments: "Cobros",
+    quotes: "Cotizaciones",
+    invoices: "Facturas",
+    whatsappTemplates: "Plantillas",
+  }[key] || key;
+}
+
+function renderMigrationTool() {
+  const preview = $("#migrationPreview");
+  const apply = $("#applyMigration");
+  const clear = $("#clearMigration");
+  if (!preview || !apply || !clear) return;
+  apply.disabled = !migrationDraft;
+  clear.disabled = !migrationDraft;
+  if (!migrationDraft) {
+    preview.innerHTML = `<div class="empty">Todavía no hay backup analizado.</div>`;
+    return;
+  }
+  const entries = Object.entries(migrationDraft.summary).filter(([, item]) => item.added || item.updated || item.skipped);
+  const totalChanges = entries.reduce((sum, [, item]) => sum + item.added + item.updated, 0);
+  preview.innerHTML = `
+    <div class="migration-status ${totalChanges ? "ready" : "quiet"}">
+      <strong>${totalChanges ? `${totalChanges} cambio${totalChanges === 1 ? "" : "s"} listo${totalChanges === 1 ? "" : "s"} para fusionar` : "No hay diferencias importantes"}</strong>
+      <span>Actual online: ${state.clients.length} clientes · Backup: ${migrationDraft.importedState.clients.length} clientes</span>
+    </div>
+    <div class="migration-grid">
+      ${entries.map(([key, item]) => `
+        <article>
+          <span>${migrationSummaryLabel(key)}</span>
+          <strong>+${item.added}</strong>
+          <small>${item.updated} fusionado${item.updated === 1 ? "" : "s"}</small>
+        </article>
+      `).join("") || `<div class="empty">El backup parece igual a los datos actuales.</div>`}
+    </div>
+    ${migrationDraft.duplicates.length ? `
+      <div class="migration-duplicates">
+        <strong>Posibles duplicados resueltos</strong>
+        ${migrationDraft.duplicates.slice(0, 6).map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+      </div>
+    ` : ""}
+  `;
+}
+
+async function analyzeSmartMigration(file) {
+  try {
+    const importedState = await readBackupFile(file);
+    migrationDraft = buildMigrationPlan(importedState);
+    renderMigrationTool();
+    showToast("Backup analizado. Revisá el resumen antes de fusionar.");
+  } catch {
+    migrationDraft = null;
+    renderMigrationTool();
+    showToast("No pude analizar el backup. Revisá que sea JSON válido.", "error");
+  }
+}
+
+async function applySmartMigration() {
+  if (!migrationDraft?.nextState) return;
+  const totalChanges = Object.values(migrationDraft.summary).reduce((sum, item) => sum + item.added + item.updated, 0);
+  const confirmed = await askConfirm({
+    title: "Fusionar datos del backup",
+    message: `Se van a aplicar ${totalChanges} cambio${totalChanges === 1 ? "" : "s"} al CRM actual. Se evita duplicar clientes por WhatsApp, patente o nombre.`,
+    action: "Fusionar",
+    tone: "primary",
+  });
+  if (!confirmed) return;
+  state = normalizeState(migrationDraft.nextState);
+  persistLocalState();
+  saveStateToServer();
+  migrationDraft = null;
+  resetQuoteForm();
+  resetInvoiceForm();
+  resetAppointmentForm();
+  resetPaymentForm();
+  renderAll();
+  showToast("Datos fusionados correctamente.");
+}
+
 function importBackup(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -5069,6 +5438,14 @@ document.addEventListener("click", async (event) => {
   if (target.dataset.quickAction) {
     runQuickProfileAction(target.dataset.quickAction, target.dataset.quickClient, target.dataset.quickVehicle || "");
   }
+  if (target.dataset.copyWhatsapp) {
+    try {
+      await navigator.clipboard.writeText(target.dataset.copyWhatsapp);
+      showToast("WhatsApp copiado.");
+    } catch {
+      showToast("No pude copiar el WhatsApp.", "error");
+    }
+  }
 
   if (target.dataset.receptionClient) {
     $("#receptionClient").value = target.dataset.receptionClient;
@@ -5577,6 +5954,35 @@ $("#exportBackup").addEventListener("click", exportBackup);
 $("#importBackup").addEventListener("change", (event) => {
   importBackup(event.target.files?.[0]);
   event.target.value = "";
+});
+$("#smartMigrationFile").addEventListener("change", (event) => {
+  analyzeSmartMigration(event.target.files?.[0]);
+  event.target.value = "";
+});
+$("#applyMigration").addEventListener("click", applySmartMigration);
+$("#clearMigration").addEventListener("click", () => {
+  migrationDraft = null;
+  renderMigrationTool();
+  showToast("Análisis limpiado.");
+});
+$("#globalSearch").addEventListener("focus", renderGlobalSearch);
+$("#globalSearch").addEventListener("blur", () => {
+  window.setTimeout(() => {
+    if (!$("#globalResults")?.matches(":hover") && !$("#globalSearch").value.trim()) renderGlobalSearch();
+  }, 180);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) {
+    event.preventDefault();
+    $("#globalSearch")?.focus();
+  }
+  if (event.key === "Escape") {
+    closeQuickProfile();
+    if ($("#globalSearch")) {
+      $("#globalSearch").value = "";
+      renderGlobalSearch();
+    }
+  }
 });
 
 document.addEventListener("visibilitychange", () => {
