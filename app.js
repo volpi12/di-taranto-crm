@@ -390,24 +390,37 @@ async function renderLoginNetworkInfo() {
   }
 }
 
-async function saveStateToServer() {
+async function saveStateToServer({ keepalive = false } = {}) {
   if (!hasBusinessData(state)) return;
   try {
     const response = await fetch("/api/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ state }),
+      keepalive,
     });
     if (response.status === 401) {
       serverAuthReady = false;
-      return;
+      return false;
     }
     const data = await response.json().catch(() => ({}));
     if (data.updatedAt) {
       state._updatedAt = data.updatedAt;
       persistLocalState();
     }
-  } catch {}
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+function stateTimestamp(value = {}) {
+  const time = Date.parse(value?._updatedAt || "");
+  return Number.isFinite(time) ? time : 0;
+}
+
+function localStateIsNewerThan(serverState) {
+  return hasBusinessData(state) && stateTimestamp(state) > stateTimestamp(serverState);
 }
 
 async function syncFromServer({ resetForms = false, notify = false } = {}) {
@@ -417,6 +430,11 @@ async function syncFromServer({ resetForms = false, notify = false } = {}) {
     const serverState = await loadServerState();
     if (!serverState) return false;
     if (String(serverState._updatedAt || "") === String(state._updatedAt || "")) return false;
+    if (localStateIsNewerThan(serverState)) {
+      await saveStateToServer();
+      if (notify) showToast("Datos locales enviados al servidor central.");
+      return true;
+    }
     applySyncedState(serverState, { resetForms });
     if (notify) showToast("Datos sincronizados desde otro dispositivo.");
     return true;
@@ -495,6 +513,8 @@ function credentialsMatch(user, password) {
 async function login(user, password) {
   $("#loginError").textContent = "Iniciando sesión...";
   try {
+    const hadLocalData = hasBusinessData(state);
+    const localBeforeLogin = normalizeState(state);
     const response = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -502,9 +522,20 @@ async function login(user, password) {
     });
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.ok) {
-      if (data.state) applySyncedState({ ...data.state, _updatedAt: data.updatedAt || data.state._updatedAt });
+      const serverState = data.state ? normalizeState({ ...data.state, _updatedAt: data.updatedAt || data.state._updatedAt }) : null;
+      if (serverState && (!hadLocalData || stateTimestamp(serverState) >= stateTimestamp(localBeforeLogin))) {
+        applySyncedState(serverState);
+      } else if (hadLocalData) {
+        state = localBeforeLogin;
+        persistLocalState();
+      }
       unlockApp();
       serverAuthReady = true;
+      if (hadLocalData && (!serverState || stateTimestamp(localBeforeLogin) > stateTimestamp(serverState))) {
+        $("#loginError").textContent = "Subiendo los datos de este dispositivo al servidor...";
+        await saveStateToServer();
+        $("#loginError").textContent = "";
+      }
       startServerSync();
       return true;
     }
@@ -4906,34 +4937,34 @@ async function applySmartMigration() {
   if (!confirmed) return;
   state = normalizeState(migrationDraft.nextState);
   persistLocalState();
-  saveStateToServer();
+  const savedOnline = await saveStateToServer();
   migrationDraft = null;
   resetQuoteForm();
   resetInvoiceForm();
   resetAppointmentForm();
   resetPaymentForm();
   renderAll();
-  showToast("Datos fusionados correctamente.");
+  showToast(savedOnline ? "Datos fusionados y guardados online." : "Datos fusionados en este dispositivo. Revisá conexión para guardar online.", savedOnline ? "success" : "error");
 }
 
 function importBackup(file) {
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result || "{}"));
       const importedState = parsed.state || parsed;
       state = normalizeState(importedState);
       state._updatedAt = new Date().toISOString();
       persistLocalState();
-      saveStateToServer();
+      const savedOnline = await saveStateToServer();
       selectedClientHistoryId = "";
       resetQuoteForm();
       resetInvoiceForm();
       resetAppointmentForm();
       resetPaymentForm();
       renderAll();
-      showToast("Backup importado correctamente.");
+      showToast(savedOnline ? "Backup importado y guardado online." : "Backup importado en este dispositivo. Revisá conexión para guardar online.", savedOnline ? "success" : "error");
     } catch {
       showToast("No pude importar el backup. Revisá que sea un archivo JSON válido.", "error");
     }
@@ -5986,7 +6017,22 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("visibilitychange", () => {
+  if (document.hidden && serverAuthReady && hasBusinessData(state)) {
+    saveStateToServer({ keepalive: true });
+  }
   if (!document.hidden) syncFromServer({ notify: true });
+});
+
+window.addEventListener("pagehide", () => {
+  if (!serverAuthReady || !hasBusinessData(state)) return;
+  try {
+    const payload = JSON.stringify({ state });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/state", new Blob([payload], { type: "application/json" }));
+      return;
+    }
+  } catch {}
+  saveStateToServer({ keepalive: true });
 });
 
 $("#paymentItemType").addEventListener("change", () => {
